@@ -3,6 +3,23 @@
 source config.sh
 source log.sh
 
+# GNU stat accepts -c. macOS stat uses -f.
+file_mtime() {
+  if out=$(stat -c %y "$1" 2>/dev/null); then
+    printf '%s\n' "$out"
+  else
+    stat -f %Sm -t '%Y-%m-%d %H:%M:%S' "$1"
+  fi
+}
+
+file_ctime() {
+  if out=$(stat -c %z "$1" 2>/dev/null); then
+    printf '%s\n' "$out"
+  else
+    stat -f %Sc -t '%Y-%m-%d %H:%M:%S' "$1"
+  fi
+}
+
 need_to_compute_checksum()
 {
   FILE=$1
@@ -18,11 +35,11 @@ need_to_compute_checksum()
   if [ ! -f "$FILE_CHECKSUM" ] || [ ! -s "$FILE_CHECKSUM" ]; then
     return 0
   else
-    LAST_MOD_CHECKSUM=$(stat -c "%y" "$FILE_CHECKSUM")
+    LAST_MOD_CHECKSUM=$(file_mtime "$FILE_CHECKSUM")
     trace "  + last_mod_checksum: $LAST_MOD_CHECKSUM"
 
     # if modify_time greater than modify_time of FILE_CHECKSUM
-    LAST_MOD=$(stat -c "%y" "$FILE")
+    LAST_MOD=$(file_mtime "$FILE")
     trace "  + last_mod: $LAST_MOD"
     if [ "$LAST_MOD" \> "$LAST_MOD_CHECKSUM" ]; then
       return 0
@@ -30,7 +47,7 @@ need_to_compute_checksum()
 
     # if change_time greater than modify_time of FILE_CHECKSUM 
     #   this can occur with some "copy/backup" program that overwrites the file and changes its modify time
-    LAST_CHG=$(stat -c "%z" "$FILE")
+    LAST_CHG=$(file_ctime "$FILE")
     trace "  + last_chg: $LAST_CHG"
     if [ "$LAST_CHG" \> "$LAST_MOD_CHECKSUM" ]; then
       return 0
