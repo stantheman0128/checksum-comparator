@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-root=$(cd "$(dirname "$0")/.." && pwd)
+root=$(cd "$(dirname "$0")/../.." && pwd)
 work=$(mktemp -d)
 
 set +e
